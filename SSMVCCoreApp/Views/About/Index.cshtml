@@ -1,6 +1,22 @@
-﻿@{
-  ViewData["Title"] = "Index";
+﻿@model Dictionary<string, string>
+@{
+  ViewData["Title"] = "Index KeyVault";
 }
-
-<h1>About Page</h1>
-
+<h1>Vault Results</h1>
+<table class="table table-bordered table-striped table-sm table-responsive-sm">
+  <thead>
+    <tr>
+      <th>Id</th>
+      <th>Vaule</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var item in Model)
+    {
+    <tr>
+      <td>@item.Key</td>
+      <td>@item.Value</td>
+    </tr>
+    }
+  </tbody>
+</table>

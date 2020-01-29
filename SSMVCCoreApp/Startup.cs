@@ -56,6 +56,14 @@ namespace SSMVCCoreApp
       services.AddScoped<IProductRepository, EfProductRepository>();
       services.AddScoped<IPhotoService, PhotoService>();
 
+      if (Configuration["EnableRedisCaching"] == "true")
+      {
+        services.AddDistributedRedisCache(cfg => {
+          cfg.Configuration = Configuration["ConnectionStrings:RedisConnection"];
+          cfg.InstanceName = "master";
+        });
+      }
+
       services.AddApplicationInsightsTelemetry(cfg =>
       {
         cfg.InstrumentationKey = Configuration["ApplicationInsights:InstrumentationKey"];

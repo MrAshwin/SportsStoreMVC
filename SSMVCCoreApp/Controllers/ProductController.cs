@@ -85,6 +85,11 @@ namespace SSMVCCoreApp.Controllers
       return RedirectToAction("List");
     }
 
+    public IActionResult ClearCache()
+    {
+      _productRepository.ClearCache();
+      return RedirectToAction("List", "Product");
+    }
     public IActionResult Contact() => View();
   }
 }

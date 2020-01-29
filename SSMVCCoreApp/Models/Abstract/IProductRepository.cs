@@ -18,5 +18,7 @@ namespace SSMVCCoreApp.Models.Abstract
     Task UpdateAsync(Product product);
 
     Task DeleteAsync(int productId);
+
+    void ClearCache();
   }
 }

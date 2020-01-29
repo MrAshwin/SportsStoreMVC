@@ -11,6 +11,8 @@
   * For Azure KeyVault
     1. Microsoft.Azure.KeyVault -version 3.0.4
     2. Microsoft.Extensions.Configuration.AzureKeyVault -version 2.2.0
+  * For Redis Cache
+    1. Install-Package Microsoft.Extensions.Caching.Redis -Version 2.2.0
 
 #### Bower  
 

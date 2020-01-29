@@ -4,7 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SSMVCCoreApp.Models.Abstract;
 using SSMVCCoreApp.Models.Entities;
 
@@ -14,11 +17,15 @@ namespace SSMVCCoreApp.Models.Concrete
   {
     private SportsStoreDbContext _context;
     private readonly ILogger<EfProductRepository> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IDistributedCache _distributedCache;
 
-    public EfProductRepository(SportsStoreDbContext context, ILogger<EfProductRepository> logger)
+    public EfProductRepository(SportsStoreDbContext context, ILogger<EfProductRepository> logger, IConfiguration configuration, IDistributedCache distributedCache)
     {
       _context = context;
       _logger = logger;
+      _configuration = configuration;
+      _distributedCache = distributedCache;
     }
 
     #region IProductRespository Members
@@ -87,8 +94,34 @@ namespace SSMVCCoreApp.Models.Concrete
     {
       try
       {
-        var productsList = await _context.Products.ToListAsync();
-        _logger.LogInformation($"ProductRepository.GetAllProductsAsync");
+        #region Without Redis Caching
+        //var productsList = await _context.Products.ToListAsync();
+        //_logger.LogInformation($"ProductRepository.GetAllProductsAsync");
+        //return productsList; 
+        #endregion
+
+        List<Product> productsList = null;
+        if (_configuration["EnableRedisCaching"] == "true")
+        {
+          var cachedProductsList = await _distributedCache.GetStringAsync("productsList");
+          if (!string.IsNullOrEmpty(cachedProductsList))
+          {
+            productsList = JsonConvert.DeserializeObject<List<Product>>(cachedProductsList);
+            _logger.LogInformation($"***** ProductsList is read from Cached *****");
+          }
+          else
+          {
+            productsList = await _context.Products.ToListAsync();
+            DistributedCacheEntryOptions entryOptions = new DistributedCacheEntryOptions();
+            entryOptions.SetAbsoluteExpiration(new TimeSpan(0, 2, 0));
+            await _distributedCache.SetStringAsync("productsList", JsonConvert.SerializeObject(productsList), entryOptions);
+            _logger.LogInformation($"***** ProductsList has been Cached *****");
+          }
+        }
+        else {
+          productsList = await _context.Products.ToListAsync();
+          _logger.LogInformation($"***** ProductsList has been fetched from Database *****");
+        }
         return productsList;
       }
       catch (Exception ex)
@@ -112,6 +145,12 @@ namespace SSMVCCoreApp.Models.Concrete
         _logger.LogError(ex, "Error in ProductRepository.UpdateAsync(product={product})");
         throw;
       }
+    }
+
+    public void ClearCache()
+    {
+      _distributedCache.RemoveAsync("productsList");
+      _logger.LogInformation($"***** ProductsList Cache has been deleted *****");
     }
 
     #endregion
